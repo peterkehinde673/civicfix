@@ -59,7 +59,7 @@ class GeminiService:
             try:
                 prompt_full = f"{system_prompt}\n\n{user_content}"
                 response = self.client.models.generate_content(
-                    model=self.model_name,
+                    model=self.model_name.replace("models/", ""),
                     contents=prompt_full,
                 )
                 raw_text = response.text.strip()

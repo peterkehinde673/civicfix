@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # Google Cloud & Gemini Settings
     GOOGLE_API_KEY: str = "AIzaSyA5_OMhm2Lc87qEAWzzpHSKu3ixIr_z9z8"
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.6-flash"
     GOOGLE_CLOUD_PROJECT: str = "civicfix-demo"
     FIRESTORE_DATABASE: str = "(default)"
     
