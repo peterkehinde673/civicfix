@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  civicfix-app:
+    build: .
+    container_name: civicfix-engine
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+      - DEBUG=False
+      - PORT=8000
+      - DEMO_MODE=True
+      - MOCK_FIRESTORE=True
+      - MOCK_PUBSUB=True
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=gemini-2.5-flash
+    restart: unless-stopped

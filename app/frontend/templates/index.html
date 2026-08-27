@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ app_name }} — {{ app_subtitle }}</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="brand-section">
+      <h1>{{ app_name }}</h1>
+      <p>{{ app_subtitle }}</p>
+    </div>
+    <div class="header-status">
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span id="engine-status">Autonomous Agent Online</span>
+      </div>
+      <button class="btn btn-demo" id="btn-run-demo" onclick="runAutonomousDemo()">⚡ Run Autonomous Demo</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Demo Execution Banner -->
+    <div class="banner-alert" id="demo-banner">
+      <div>
+        <strong id="demo-banner-title" style="color: #A78BFA;">🤖 Autonomous Demo in Progress...</strong>
+        <p id="demo-banner-desc" style="font-size: 0.85rem; color: #E0E7FF; margin-top: 0.25rem;">
+          Executing perception, routing, rejection of blind trust, and evidence verification cycle.
+        </p>
+      </div>
+      <div class="status-badge" style="background: #312E81; color: #C7D2FE; border-color: #4F46E5;">
+        AUTONOMOUS LOOP
+      </div>
+    </div>
+
+    <!-- Metric counters -->
+    <div class="dashboard-grid">
+      <div class="metric-card">
+        <span class="metric-label">Total Cases</span>
+        <span class="metric-value" id="metric-total">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Open Cases</span>
+        <span class="metric-value" id="metric-open" style="color: #60A5FA;">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Investigating</span>
+        <span class="metric-value" id="metric-investigating" style="color: #FBBF24;">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Awaiting Evidence</span>
+        <span class="metric-value" id="metric-awaiting" style="color: #F87171;">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Escalated</span>
+        <span class="metric-value" id="metric-escalated" style="color: #EC4899;">0</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Resolved</span>
+        <span class="metric-value" id="metric-resolved" style="color: #34D399;">0</span>
+      </div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="workspace-grid">
+      <!-- Report Form Panel -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Report Issue</h2>
+        </div>
+        <form id="report-form" onsubmit="handleReportSubmit(event)">
+          <div class="form-group">
+            <label for="problem-description">Problem Description</label>
+            <textarea
+              id="problem-description"
+              class="form-control"
+              placeholder="e.g. Broken streetlight on 4th Avenue near Unity School causing blackouts for weeks..."
+              required
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="location-hint">Location</label>
+            <input
+              type="text"
+              id="location-hint"
+              class="form-control"
+              placeholder="e.g. Unity School, 4th Avenue"
+            />
+          </div>
+          <div class="form-group">
+            <label for="image-upload">Visual Evidence (Optional Image)</label>
+            <input
+              type="file"
+              id="image-upload"
+              class="form-control"
+              accept="image/*"
+              onchange="handleImagePreview(event)"
+            />
+            <img id="image-preview" class="file-upload-preview" alt="Evidence Preview" />
+          </div>
+          <button type="submit" class="btn" id="btn-submit-report">
+            🚀 Submit &amp; Dispatch Agent
+          </button>
+        </form>
+      </section>
+
+      <!-- Active Cases & Live Agent Activity -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Active Municipal Resolution Stream</h2>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+            AUTO-REFRESH: 2s
+          </span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Case ID</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Last Agent Action</th>
+              </tr>
+            </thead>
+            <tbody id="cases-table-body">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  No cases active. Submit a report or click "Run Autonomous Demo".
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Interactive Case Inspection Modal -->
+  <div class="modal-backdrop" id="case-modal" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h2 id="modal-case-id" style="font-size: 1.3rem; font-family: var(--font-mono); color: #60A5FA;">CF-2026-0001</h2>
+          <p id="modal-case-title" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Streetlight defect</p>
+        </div>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+
+      <!-- Quick Details Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+        <div style="background: #0F172A; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">CATEGORY</div>
+          <div id="modal-category" style="font-weight: 600; margin-top: 0.25rem;">Street Lighting</div>
+        </div>
+        <div style="background: #0F172A; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">PRIORITY</div>
+          <div id="modal-priority" style="font-weight: 600; margin-top: 0.25rem;">HIGH</div>
+        </div>
+        <div style="background: #0F172A; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">STATUS</div>
+          <div id="modal-status" style="font-weight: 600; margin-top: 0.25rem;">RESOLVED</div>
+        </div>
+        <div style="background: #0F172A; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">DEPARTMENT</div>
+          <div id="modal-department" style="font-weight: 600; margin-top: 0.25rem;">Street Lighting Dept</div>
+        </div>
+      </div>
+
+      <!-- Gemini Structured Analysis Section -->
+      <div>
+        <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #34D399;">🧠 Gemini Structured Reasoning Analysis</h3>
+        <div id="modal-analysis-box" style="background: #0F172A; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); font-size: 0.85rem; line-height: 1.4;">
+          Loading analysis...
+        </div>
+      </div>
+
+      <!-- Evidence Section -->
+      <div>
+        <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">📸 Attached Evidence &amp; Verification Proof</h3>
+        <div id="modal-evidence-box" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">No evidence attached.</span>
+        </div>
+      </div>
+
+      <!-- Immutable Audit Trail -->
+      <div>
+        <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #60A5FA;">🛡️ Immutable Agent Audit Trail</h3>
+        <div class="audit-feed" id="modal-audit-trail">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    CivicFix &bull; Autonomous Community Resolution Engine &bull; Built with FastAPI &amp; Google Gemini
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
