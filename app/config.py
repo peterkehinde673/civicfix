@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # Google Cloud & Gemini Settings
-    GOOGLE_API_KEY: str = ""
+    GOOGLE_API_KEY: str = "AIzaSyA5_OMhm2Lc87qEAWzzpHSKu3ixIr_z9z8"
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GOOGLE_CLOUD_PROJECT: str = "civicfix-demo"
     FIRESTORE_DATABASE: str = "(default)"
