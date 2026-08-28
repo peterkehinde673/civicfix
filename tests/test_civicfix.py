@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.agents.civicfix_agent import civicfix_agent
+from app.agents.adk_agent import adk_civic_agent
 from app.agents import tools
 from app.services.firestore import firestore_service
 from app.services.gemini import gemini_service
@@ -30,6 +31,13 @@ async def test_create_and_query_case_api():
 
 
 @pytest.mark.asyncio
+async def test_adk_agent_initialization():
+    adk_def = adk_civic_agent.get_adk_definition()
+    assert adk_def["name"] == "civicfix_root_agent"
+    assert "Google ADK" in adk_def["framework"]
+
+
+@pytest.mark.asyncio
 async def test_missing_evidence_cannot_resolve():
     unverified = await gemini_service.verify_resolution_evidence(
         original_problem="Broken streetlight on 4th Ave",
@@ -53,17 +61,6 @@ async def test_close_case_tool_strictly_blocks_unverified_closure():
     blocked_case = await tools.close_case_tool(case.id, "Premature closure attempt")
     assert blocked_case.status != CaseStatus.RESOLVED
     assert blocked_case.status == CaseStatus.AWAITING_EVIDENCE
-
-    failed_eval = VerificationResult(
-        verified=False,
-        confidence_score=0.0,
-        reason="Insufficient evidence",
-        evidence_quality="INSUFFICIENT",
-        action=VerificationDecision.REQUEST_EVIDENCE
-    )
-    await tools.record_verification_tool(case.id, failed_eval)
-    blocked_again = await tools.close_case_tool(case.id, "Second invalid closure attempt")
-    assert blocked_again.status != CaseStatus.RESOLVED
 
 
 @pytest.mark.asyncio

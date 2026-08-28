@@ -12,6 +12,11 @@ settings = get_settings()
 
 
 class GeminiService:
+    """
+    Multimodal reasoning and verification service using Google Gemini 3.6 Flash.
+    Strict Policy: Under NO circumstance does a failed or unverified request resolve a case.
+    """
+
     def __init__(self):
         self.api_key = settings.GOOGLE_API_KEY
         self.model_name = settings.GEMINI_MODEL.replace("models/", "")
@@ -103,7 +108,7 @@ class GeminiService:
                     visual_observations=parsed.get("visual_observations", ["Visual proof examined"])
                 )
             except Exception as e:
-                logger.warning(f"Gemini API analysis notice: {e}. Utilizing structured heuristic engine.")
+                logger.warning(f"Gemini API analysis notice: {e}. Utilizing structured heuristic fallback.")
 
         return self._heuristic_analysis(text_report, location_hint, bool(image_base64))
 
@@ -158,7 +163,10 @@ class GeminiService:
         evidence_description: str,
         evidence_image_base64: Optional[str] = None
     ) -> VerificationResult:
-        # Rule 1: Zero evidence is ALWAYS strictly rejected
+        """
+        Multimodal Resolution Verification.
+        Rule: NO VERIFIED EVIDENCE = NO CASE CLOSURE.
+        """
         if not evidence_description or "no evidence" in evidence_description.lower() or len(evidence_description.strip()) < 5:
             return VerificationResult(
                 verified=False,
@@ -226,22 +234,19 @@ class GeminiService:
                     action=VerificationDecision.RESOLVE_CASE
                 )
             except Exception as e:
-                logger.warning(f"Gemini verification API rate-limit/network notice: {e}.")
-
-        # Safe evaluation when valid field proof is submitted
-        if "verified post-repair" in evidence_description.lower() or "resolution proof" in evidence_description.lower():
-            return VerificationResult(
-                verified=True,
-                confidence_score=0.94,
-                reason="Submitted photographic proof visibly confirms completed restoration and operational status.",
-                evidence_quality="SUFFICIENT",
-                action=VerificationDecision.RESOLVE_CASE
-            )
+                logger.warning(f"Gemini verification API notice: {e}. Strict fail-safe applied.")
+                return VerificationResult(
+                    verified=False,
+                    confidence_score=0.0,
+                    reason=f"Verification failed due to API processing error ({str(e)}). Case remains open for safety.",
+                    evidence_quality="INSUFFICIENT",
+                    action=VerificationDecision.REQUEST_EVIDENCE
+                )
 
         return VerificationResult(
             verified=False,
             confidence_score=0.0,
-            reason="Evidence does not meet required verification threshold.",
+            reason="Gemini reasoning client is unavailable. Case cannot be closed without verification.",
             evidence_quality="INSUFFICIENT",
             action=VerificationDecision.REQUEST_EVIDENCE
         )
