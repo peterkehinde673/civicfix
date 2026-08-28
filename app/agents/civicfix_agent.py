@@ -2,9 +2,8 @@ import asyncio
 import logging
 import uuid
 from typing import Dict, Any, Optional
-from app.models.case import Case, CaseStatus, EvidenceItem, EvidenceType, VerificationResult, VerificationDecision
+from app.models.case import Case, CaseStatus, EvidenceItem, EvidenceType, VerificationDecision
 from app.services.firestore import firestore_service
-from app.services.gemini import gemini_service
 from app.services.departments import department_simulator
 from app.services.pubsub import pubsub_service
 from app.agents.adk_agent import adk_civic_agent
@@ -47,11 +46,6 @@ DEMO_SCENARIOS = {
 
 
 class CivicFixAgent:
-    """
-    Google ADK Agent Lifecycle Orchestrator.
-    Workflow: UNDERSTAND -> PLAN -> ACT -> WAIT -> VERIFY -> RECOVER -> ESCALATE -> RESOLVE
-    """
-
     def __init__(self):
         self.adk = adk_civic_agent
 
@@ -61,25 +55,11 @@ class CivicFixAgent:
         location_hint: Optional[str] = None,
         image_base64: Optional[str] = None
     ) -> Case:
-        logger.info("ADK Agent perceiving community report with Gemini...")
-        
-        # 1. UNDERSTAND: Multimodal Reasoning
-        analysis = await gemini_service.analyze_report(
-            text_report=report_text,
+        case, analysis = await self.adk.execute_intake(
+            report_text=report_text,
             location_hint=location_hint,
             image_base64=image_base64
         )
-        
-        # 2. PLAN & ACT: Create Case via Deterministic ADK Tool
-        case = await tools.create_case_tool(
-            raw_description=report_text,
-            location=analysis.location,
-            category=analysis.category,
-            priority=analysis.priority,
-            responsible_department=analysis.responsible_department
-        )
-        case.analysis = analysis
-
         if image_base64:
             initial_evidence = EvidenceItem(
                 id=str(uuid.uuid4())[:8],
@@ -91,16 +71,6 @@ class CivicFixAgent:
             case.evidence.append(initial_evidence)
 
         await firestore_service.update_case(case)
-
-        # 3. ROUTE: Assign Department
-        await tools.assign_department_tool(case.id, analysis.responsible_department)
-
-        # 4. DISPATCH: Create Work Order
-        wo_instructions = (
-            f"Remediate {analysis.category.value} at {analysis.location}. "
-            f"Recommended actions: {', '.join(analysis.recommended_actions)}"
-        )
-        await tools.create_work_order_tool(case.id, analysis.responsible_department, wo_instructions)
         await pubsub_service.publish_event("case.dispatched", {"case_id": case.id, "department": analysis.responsible_department})
         return await firestore_service.get_case(case.id)
 
@@ -108,6 +78,7 @@ class CivicFixAgent:
         scenario = DEMO_SCENARIOS.get(scenario_key, DEMO_SCENARIOS["streetlight"])
         steps_log = []
 
+        # 1. Ingest via ADK
         case = await self.ingest_and_process(
             report_text=scenario["description"],
             location_hint=scenario["location"],
@@ -120,6 +91,7 @@ class CivicFixAgent:
         })
         await asyncio.sleep(delay_seconds)
 
+        # 2. Premature Claim
         dept_claim = department_simulator.simulate_premature_resolution(
             department=case.responsible_department,
             issue_summary=scenario["name"]
@@ -137,8 +109,8 @@ class CivicFixAgent:
         })
         await asyncio.sleep(delay_seconds)
 
-        # Step 3: Reject Blind Trust
-        unverified_eval = await gemini_service.verify_resolution_evidence(
+        # 3. Reject Blind Trust
+        unverified_eval = await self.adk.execute_verification(
             original_problem=case.raw_description,
             claim_description=dept_claim["claim_text"],
             evidence_description=""
@@ -155,7 +127,7 @@ class CivicFixAgent:
         })
         await asyncio.sleep(delay_seconds)
 
-        # Step 4: Field Crew Submits Valid Post-Repair Proof
+        # 4. Field Crew Submits Proof
         field_proof = department_simulator.simulate_resolution_evidence(case.category.value)
         resolution_evidence = EvidenceItem(
             id=field_proof["evidence_id"],
@@ -172,27 +144,27 @@ class CivicFixAgent:
         })
         await asyncio.sleep(delay_seconds)
 
-        # Step 5: Record Validated Resolution Proof for Demo Scenario
-        verified_eval = VerificationResult(
-            verified=True,
-            confidence_score=0.95,
-            reason=f"[Demo Simulation] Field supervisor post-repair photographic proof verified for {case.category.value}.",
-            evidence_quality="SUFFICIENT",
-            action=VerificationDecision.RESOLVE_CASE
+        # 5. Real Verification (No Hardcoded Success)
+        verified_eval = await self.adk.execute_verification(
+            original_problem=case.raw_description,
+            claim_description=dept_claim["claim_text"],
+            evidence_description=field_proof["description"],
+            evidence_image_base64=field_proof["simulated_image"]
         )
         await tools.record_verification_tool(case.id, verified_eval)
 
-        # Step 6: Autonomous Closure via Double-Lock Guard
-        await tools.close_case_tool(
-            case_id=case.id,
-            closure_notes=f"Photographic verification passed (Confidence 95%). Resolved autonomously."
-        )
+        # 6. Double-Lock Closure Gate
+        if verified_eval.verified and verified_eval.action == VerificationDecision.RESOLVE_CASE:
+            await tools.close_case_tool(
+                case_id=case.id,
+                closure_notes=f"Photographic verification passed (Confidence {int(verified_eval.confidence_score*100)}%). Resolved autonomously."
+            )
 
         updated_case = await firestore_service.get_case(case.id)
         steps_log.append({
             "step": 5,
             "phase": "RESOLVED_AND_CLOSED",
-            "message": f"Case {case.id} verified and resolved autonomously."
+            "message": f"Case {case.id} processed autonomously."
         })
 
         return {

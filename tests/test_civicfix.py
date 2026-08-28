@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.agents.civicfix_agent import civicfix_agent
@@ -86,8 +87,17 @@ async def test_sufficient_evidence_can_resolve_case():
 
 @pytest.mark.asyncio
 async def test_all_five_demo_scenarios():
-    for scenario in ["streetlight", "drainage", "pothole", "waste", "water_leak"]:
-        res = await civicfix_agent.run_scenario_demo(scenario_key=scenario, delay_seconds=0.01)
-        assert res["status"] == "SUCCESS"
-        case = await firestore_service.get_case(res["case_id"])
-        assert case.status in [CaseStatus.RESOLVED, CaseStatus.CLOSED]
+    """Batch test for all 5 scenarios without exhausting live API rate limits."""
+    mock_eval = VerificationResult(
+        verified=True,
+        confidence_score=0.95,
+        reason="[Test Environment] Field supervisor post-repair photographic proof verified.",
+        evidence_quality="SUFFICIENT",
+        action=VerificationDecision.RESOLVE_CASE
+    )
+    with patch.object(adk_civic_agent, "execute_verification", return_value=mock_eval):
+        for scenario in ["streetlight", "drainage", "pothole", "waste", "water_leak"]:
+            res = await civicfix_agent.run_scenario_demo(scenario_key=scenario, delay_seconds=0.01)
+            assert res["status"] == "SUCCESS"
+            case = await firestore_service.get_case(res["case_id"])
+            assert case.status in [CaseStatus.RESOLVED, CaseStatus.CLOSED]
