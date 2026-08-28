@@ -63,20 +63,20 @@ flowchart TD
     DEPT --> PS
     FS --> AGENT
 flowchart TD
-    A[Citizen Submits Report\nText + Visual Media] --> B[UNDERSTAND\nGemini Multimodal Reasoning]
-    B --> C[PLAN & ACT\nCreate Case & Assign Department]
-    C --> D[DISPATCH\nIssue Municipal Work Order]
-    D --> E[WAIT / MONITOR\nDepartment Resolution Claim]
-    E --> F{EVIDENCE CHECK\nIs Photographic Proof Attached?}
-    F -- No Proof / Premature Claim --> G[REJECT BLIND TRUST\nStatus: AWAITING_EVIDENCE]
-    G --> H[REQUEST EVIDENCE\nNotify Field Contractor]
+    A[Citizen Submits Report] --> B[Gemini Multimodal Reasoning]
+    B --> C[Plan & Create Case]
+    C --> D[Dispatch Work Order]
+    D --> E[Monitor Department Response]
+    E --> F{Photographic Proof Attached?}
+    F -- No Proof / Premature Claim --> G[Reject Blind Trust: Status AWAITING_EVIDENCE]
+    G --> H[Request Proof from Contractor]
     H --> I[Field Submits Post-Repair Proof]
-    I --> J[MULTIMODAL VERIFICATION\nGemini Defect Comparison]
+    I --> J[Gemini Multimodal Verification]
     F -- Proof Attached --> J
-    J --> K{Verification Evaluation}
-    K -- Passed --> L[RESOLVE & CLOSE\nImmutable Audit Stamped]
-    K -- Failed / Contradictory --> M[REQUEST FURTHER PROOF]
-    K -- Stalled / SLA Breach --> N[ESCALATE\nMunicipal Oversight Board]
+    J --> K{Verification Result}
+    K -- Passed --> L[Resolve & Close Case]
+    K -- Failed --> M[Request Further Proof]
+    K -- Stalled --> N[Escalate to Oversight Board]
 git clone https://github.com/peterkehinde673/civicfix.git
 cd civicfix
 python3 -m venv .venv
@@ -84,7 +84,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 pytest -v
- Security & Safety
+Security & Safety
 Zero Secret Leakage: API keys and GCP service accounts are loaded from environment variables and excluded from Git via .gitignore.
 Input Validation: Multimodal uploads are capped at 10MB with strict base64 and MIME verification.
 Structured Fallback: If the Gemini API experiences network interruption, the system activates a deterministic heuristic fallback.
