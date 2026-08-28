@@ -9,7 +9,8 @@ from app.models.case import (
     WorkOrder,
     IssueCategory,
     PriorityLevel,
-    VerificationResult
+    VerificationResult,
+    VerificationDecision
 )
 from app.services.firestore import firestore_service
 
@@ -118,6 +119,24 @@ async def close_case_tool(case_id: str, closure_notes: str) -> Optional[Case]:
     case = await firestore_service.get_case(case_id)
     if not case:
         return None
+
+    latest_verification = case.verification_history[-1] if case.verification_history else None
+    if (
+        not latest_verification
+        or not latest_verification.verified
+        or latest_verification.evidence_quality != "SUFFICIENT"
+        or latest_verification.action != VerificationDecision.RESOLVE_CASE
+    ):
+        logger.warning(f"Rejected attempt to close case {case_id} without verified evidence.")
+        case.status = CaseStatus.AWAITING_EVIDENCE
+        await firestore_service.add_audit_entry(
+            case_id=case_id,
+            action="CASE_CLOSURE_REJECTED",
+            details="Deterministic guard rejected case closure: latest verification is missing or unverified.",
+            metadata={"closure_allowed": False}
+        )
+        return await firestore_service.update_case(case)
+
     case.status = CaseStatus.RESOLVED
     case.workflow_step = "CASE_RESOLVED"
     case.last_agent_action = "Case verified & resolved autonomously."
@@ -125,6 +144,6 @@ async def close_case_tool(case_id: str, closure_notes: str) -> Optional[Case]:
         case_id=case_id,
         action="CLOSE_CASE",
         details=f"Case closed: {closure_notes}",
-        metadata={"status": "RESOLVED"}
+        metadata={"status": "RESOLVED", "verified_confidence": latest_verification.confidence_score}
     )
     return await firestore_service.update_case(case)

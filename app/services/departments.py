@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 AVAILABLE_DEPARTMENTS = [
     "Roads Department",
@@ -22,12 +22,12 @@ CATEGORY_TO_DEPARTMENT = {
     "Other": "Public Facilities Department"
 }
 
+# Valid 1x1 green pixel base64 PNG
+VALID_PNG_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
 
 class DepartmentSimulator:
-    """
-    Simulated Municipal Department Service (Demo Simulation).
-    Simulates municipal responses, work order lifecycle, and resolution claims.
-    """
+    """Simulated Municipal Department Service (Demo Simulation)."""
 
     @staticmethod
     def get_department_for_category(category: str) -> str:
@@ -46,7 +46,6 @@ class DepartmentSimulator:
 
     @staticmethod
     def simulate_premature_resolution(department: str, issue_summary: str) -> Dict[str, Any]:
-        """Simulates department claiming 'Job Done' without providing photographic proof."""
         return {
             "department": department,
             "status": "COMPLETED",
@@ -57,13 +56,12 @@ class DepartmentSimulator:
 
     @staticmethod
     def simulate_resolution_evidence(category: str) -> Dict[str, Any]:
-        """Simulates field unit submitting after-repair photographic proof."""
         return {
             "evidence_id": f"EVD-{uuid.uuid4().hex[:6].upper()}",
             "description": f"[Demo Simulation] Verified post-repair photographic proof submitted by field team for {category}.",
-            "timestamp": "2026-08-27T20:45:00Z",
+            "timestamp": "2026-08-28T12:00:00Z",
             "verified_by_supervisor": True,
-            "simulated_image": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='200' style='background:%23064E3B;color:%23fff;font-family:sans-serif;'><text x='20' y='100' font-size='18' fill='%236EE7B7'>Field Resolution Proof: Repaired & Operational</text></svg>"
+            "simulated_image": VALID_PNG_BASE64
         }
 
 
