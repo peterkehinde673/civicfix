@@ -1,4 +1,4 @@
-# CivicFix — Architecture
+# CivicFix Architecture
 
 ```mermaid
 flowchart TD
