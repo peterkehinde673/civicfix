@@ -41,12 +41,19 @@ class EvidenceType(str, Enum):
     RESOLUTION_PROOF = "RESOLUTION_PROOF"
 
 
+class VerificationDecision(str, Enum):
+    RESOLVE_CASE = "RESOLVE_CASE"
+    REQUEST_EVIDENCE = "REQUEST_EVIDENCE"
+    ESCALATE_CASE = "ESCALATE_CASE"
+
+
 class EvidenceItem(BaseModel):
     id: str
     evidence_type: EvidenceType = EvidenceType.INITIAL_REPORT
     description: str
     image_url: Optional[str] = None
     image_base64: Optional[str] = None
+    mime_type: Optional[str] = "image/jpeg"
     extracted_metadata: Dict[str, Any] = Field(default_factory=dict)
     verified: Optional[bool] = None
     verification_notes: Optional[str] = None
@@ -68,7 +75,7 @@ class WorkOrder(BaseModel):
     department: str
     title: str
     instructions: str
-    status: str = "DISPATCHED"  # DISPATCHED, ACCEPTED, INVESTIGATING, DELAYED, COMPLETED, REJECTED
+    status: str = "DISPATCHED"
     dispatched_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     department_notes: Optional[str] = None
     claimed_resolution_at: Optional[str] = None
@@ -85,6 +92,14 @@ class GeminiAnalysis(BaseModel):
     missing_evidence: List[str] = Field(default_factory=list)
     recommended_actions: List[str] = Field(default_factory=list)
     visual_observations: List[str] = Field(default_factory=list)
+
+
+class VerificationResult(BaseModel):
+    verified: bool
+    confidence_score: float = Field(default=0.9, ge=0.0, le=1.0)
+    reason: str = "Evidence verified against defect."
+    evidence_quality: str = "SUFFICIENT"
+    action: VerificationDecision = VerificationDecision.RESOLVE_CASE
 
 
 class CaseCreateRequest(BaseModel):
@@ -110,6 +125,7 @@ class Case(BaseModel):
     workflow_step: str = "INITIALIZED"
     last_agent_action: str = "Report received"
     escalation_count: int = 0
+    verification_history: List[VerificationResult] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     resolved_at: Optional[str] = None
